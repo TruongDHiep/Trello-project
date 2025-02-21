@@ -1,22 +1,19 @@
-// App.jsx
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom'
-import Auth from './pages/Auth'
-import Home from './pages/Home/_id'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import Board from './pages/Boards/_id'
+import NotFound from './pages/404/NotFound'
+import Auth from './pages/Auth/Auth'
 
 function App() {
   return (
-    <Router>
-      <div>
-        <Routes>
-          <Route path="/login" element={<Auth isLogin={true} />} />
-          <Route path="/register" element={<Auth isLogin={false} />} />
-          <Route path="/" element={<Navigate to="/login" />} /> {/* Chuyển hướng từ / đến /login */}
-          <Route path="/user/:id" element={<Home />} />
-          <Route path="/board/:boardId" element={<Board />} />
-        </Routes>
-      </div>
-    </Router>
+    <Routes>
+      <Route path='/' element={<Navigate to='/boards/66f42f65f2ee4f9e1f6625bc' replace='true'/>} />
+      <Route path='/boards/:boardId' element={<Board />}/>
+
+      <Route path='/login' element={<Auth />} />
+      <Route path='/register' element={<Auth />} />
+
+      <Route path='*' element={<NotFound />} />
+    </Routes>
   )
 }
 
