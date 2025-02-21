@@ -12,13 +12,14 @@ import 'react-toastify/dist/ReactToastify.css'
 import { ConfirmProvider } from 'material-ui-confirm'
 
 import { Provider } from 'react-redux'
-import { PersistGate } from 'redux-persist/integration/react'
-import store, { persistor } from './redux/store'
+import { store } from './redux/store'
+
+//cau hinh react router dom voi browser router
+import { BrowserRouter } from 'react-router-dom'
 
 ReactDOM.createRoot(document.getElementById('root')).render(
-  // <React.StrictMode>
-  <Provider store={store}>
-    <PersistGate loading={null} persistor={persistor}>
+  <BrowserRouter basename='/'>
+    <Provider store={store}>
       <CssVarsProvider theme={theme}>
         <ConfirmProvider defaultOptions={{
           allowClose: false,
@@ -31,7 +32,6 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <ToastContainer />
         </ConfirmProvider>
       </CssVarsProvider>
-    </PersistGate>
-  </Provider>
-  // </React.StrictMode>
+    </Provider>
+  </BrowserRouter>
 )
