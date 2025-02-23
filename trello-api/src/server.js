@@ -9,10 +9,19 @@ import { env } from '~/config/environment'
 import { APIs_V1 } from '~/routes/v1'
 import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware'
 import { corsOptions } from '~/config/cors.js'
+import cookieParser from 'cookie-parser'
 
 const START_SERVER = () => {
 
   const app = express()
+
+  // fix cache from disk
+  app.use((req, res, next) => {
+    res.set('Cache-Control', 'no-store')
+    next()
+  })
+
+  app.use(cookieParser())
 
   //xu ly cors
   app.use(cors(corsOptions))

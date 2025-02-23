@@ -1,19 +1,33 @@
-import jwt from 'jsonwebtoken'
 import { StatusCodes } from 'http-status-codes'
 import { env } from '~/config/environment'
+import { JwtProvider } from '~/providers/JwtProvider'
+import ApiError from '~/utils/ApiError'
 
-export const verifyToken = (req, res, next) => {
-  const token = req.headers['authorization']?.split(' ')[1]
-
-  if (!token) {
-    return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'No token provided' })
+const isAuthorized = async (req, res, next) => {
+  const clientAccessToken = req.cookies?.accessToken
+  if (!clientAccessToken) {
+    next(new ApiError(StatusCodes.UNAUTHORIZED, 'Unauthorized (token not found)'))
+    return
   }
-
   try {
-    const decoded = jwt.verify(token, env.JWT_SECRET)
-    req.userId = decoded.id
+    const accessTokenDecoded = await JwtProvider.verifyToken(clientAccessToken, env.ACCESS_TOKEN_SECRET_SIGNATURE)
+
+
+    req.jwtDecoded = accessTokenDecoded
+
     next()
+
   } catch (error) {
-    return res.status(StatusCodes.UNAUTHORIZED).json({ message: 'Invalid token' + error })
+    if (error?.message?.includes('jwt expired')) {
+      next(new ApiError(StatusCodes.GONE, 'Need to refresh token'))
+      return
+    }
+
+    next(new ApiError(StatusCodes.UNAUTHORIZED, 'Unauthorized'))
+
   }
+}
+
+export const authMiddleware = {
+  isAuthorized
 }

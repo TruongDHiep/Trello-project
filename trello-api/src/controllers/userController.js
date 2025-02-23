@@ -1,59 +1,73 @@
 import { StatusCodes } from 'http-status-codes'
 import { userService } from '~/services/userService'
-import jwt from 'jsonwebtoken'
-import { env } from '~/config/environment'
+import ms from 'ms'
+import ApiError from '~/utils/ApiError'
 
 
-const createNew = [
-  async (req, res, next) => {
-    try {
-      const createdUser = await userService.createNew(req.body)
-      res.status(StatusCodes.CREATED).json(createdUser)
-    } catch (error) { next(error) }
-  }
-]
-
-const getDetails = async (req, res, next) => {
+const createNew = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const user = await userService.getDetails(userId)
-    res.status(StatusCodes.OK).json(user)
+    const createdUser = await userService.createNew(req.body)
+    res.status(StatusCodes.CREATED).json(createdUser)
   } catch (error) { next(error) }
 }
 
-const update = [
-  async (req, res, next) => {
-    try {
-      const userId = req.params.id
-      const updatedUser = await userService.update(userId, req.body)
-      res.status(StatusCodes.OK).json(updatedUser)
-    } catch (error) { next(error) }
-  }
-]
 
-const softDelete = async (req, res, next) => {
+const verifyAccount = async (req, res, next) => {
   try {
-    const userId = req.params.id
-    const result = await userService.softDelete(userId)
+    const result = await userService.verifyAccount(req.body)
     res.status(StatusCodes.OK).json(result)
   } catch (error) { next(error) }
 }
 
 const login = async (req, res, next) => {
   try {
-    const { email, password } = req.body
-    const user = await userService.login(email, password) // Tạo hàm login trong userService
-    const token = jwt.sign({ id: user._id }, env.JWT_SECRET, { expiresIn: '1h' }) // Tạo token
-    res.status(StatusCodes.OK).json({ token })
-  } catch (error) {
-    next(error)
-  }
+    const result = await userService.login(req.body)
+
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      sameSite: 'None',
+      secure: true,
+      maxAge: ms('14 days')
+    })
+
+    res.cookie('refreshToken', result.refreshToken, {
+      httpOnly: true,
+      sameSite: 'None',
+      secure: true,
+      maxAge: ms('14 days')
+    })
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(error) }
 }
+
+const logout = async (req, res, next) => {
+  try {
+    res.clearCookie('accessToken')
+    res.clearCookie('refreshToken')
+    res.status(StatusCodes.OK).json({ loggedOut: true })
+  } catch (error) { next(error) }
+}
+
+const refreshToken = async (req, res, next) => {
+  try {
+    const result = await userService.refreshToken(req.cookies?.refreshToken)
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      sameSite: 'None',
+      secure: true,
+      maxAge: ms('14 days')
+    })
+
+    res.status(StatusCodes.OK).json(result)
+  } catch (error) { next(new ApiError(StatusCodes.FORBIDDEN, 'Please sign in (error from refresh token)')) }
+}
+
 
 export const userController = {
   createNew,
-  getDetails,
-  update,
-  softDelete,
-  login
+  verifyAccount,
+  login,
+  logout,
+  refreshToken
 }

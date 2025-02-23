@@ -21,11 +21,8 @@ const createNew = async (reqBody) => {
     }
 
     const createdBoard = await boardModel.createNew(newBoard)
-    console.log(createdBoard)
 
-    //lay ban ghi board
     const getNewBoard = await boardModel.findOneById(createdBoard.insertedId)
-    console.log(getNewBoard)
 
     // Save to database
     return getNewBoard
