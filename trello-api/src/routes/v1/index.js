@@ -27,7 +27,7 @@ Router.use('/columns', columnRoutes)
 Router.use('/cards', cardRoutes)
 
 //user
-Router.use('/user', userRoutes)
+Router.use('/users', userRoutes)
 
 //login
 Router.use('/', authRoutes)

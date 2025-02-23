@@ -1,80 +1,140 @@
 import { userModel } from '~/models/userModel'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
-import bcrypt from 'bcrypt'
+import bcryptjs from 'bcryptjs'
+import { v4 as uuidv4 } from 'uuid'
+import { pickUser } from '~/utils/formatters'
+import { WEBSITE_DOMAIN } from '~/utils/constants'
+import { BrevoProvider } from '~/providers/BrevoProvider'
+import { env } from '~/config/environment'
+import { JwtProvider } from '~/providers/JwtProvider'
 
 
-const createNew = async (data) => {
+const createNew = async (reqBody) => {
   try {
-    const existingUser = await userModel.findOneByEmail(data.email)
-    if (existingUser) {
+    const existUser = await userModel.findOneByEmail(reqBody.email)
+    if (existUser) {
       throw new ApiError(StatusCodes.CONFLICT, 'Email already exists')
     }
 
-    const createdUser = await userModel.createNew(data)
+    const nameFromEmail = reqBody.email.split('@')[0]
+
+    const newUser = {
+      email: reqBody.email,
+      password: bcryptjs.hashSync(reqBody.password, 8),
+      username: nameFromEmail,
+      displayName: nameFromEmail,
+      verifyToken: uuidv4()
+    }
+
+    const createdUser = await userModel.createNew(newUser)
+
     const getNewUser = await userModel.findOneById(createdUser.insertedId)
 
-    return getNewUser
+    const verificationLink = `${WEBSITE_DOMAIN}/account/verification?email=${getNewUser.email}&token=${getNewUser.verifyToken}`
+
+    const customSubject = 'Please verify your email address before logging in to Trello'
+    const htmlContent = `
+      <h1>Welcome to Trello</h1>
+      <h3>Click the link below to verify your email address:</h3>
+      <h3>${verificationLink}</h3>
+    `
+
+    // goi toi provider gui mail
+    await BrevoProvider.sendEmail(getNewUser.email, customSubject, htmlContent)
+
+
+    return pickUser(getNewUser)
   } catch (error) {
     throw error
   }
 }
 
-const getDetails = async (userId) => {
+const verifyAccount = async (reqBody) => {
   try {
-    const user = await userModel.findOneById(userId)
-    if (!user) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    const existUser = await userModel.findOneByEmail(reqBody.email)
+
+    if (!existUser) throw new ApiError(StatusCodes.NOT_FOUND, 'Account not found')
+
+    if (existUser.isActive) throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Account is already verified')
+
+    if (reqBody.token !== existUser.verifyToken) throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Invalid token')
+
+    const updateData = {
+      isActive: true,
+      verifyToken: null
     }
-    return user
-  } catch (error) {
-    throw error
-  }
+
+    const updatedUser = await userModel.update(existUser._id, updateData)
+
+    return pickUser(updatedUser)
+
+  } catch (error) { throw error }
 }
 
-const update = async (userId, updateData) => {
+const login = async (reqBody) => {
   try {
-    const updatedUser = await userModel.update(userId, updateData)
-    if (!updatedUser) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    const existUser = await userModel.findOneByEmail(reqBody.email)
+
+    if (!existUser) throw new ApiError(StatusCodes.NOT_FOUND, 'Account not found')
+
+    if (!existUser.isActive) throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Account is not verified')
+
+    if (!bcryptjs.compareSync(reqBody.password, existUser.password)) throw new ApiError(StatusCodes.NOT_ACCEPTABLE, 'Your Email or Password is incorrect')
+
+    const userInfo = {
+      _id: existUser._id,
+      email: existUser.email
     }
-    return updatedUser
+
+    const accessToken = JwtProvider.generateToken(
+      userInfo, env.ACCESS_TOKEN_SECRET_SIGNATURE,
+      // 5
+      env.ACCESS_TOKEN_LIFE
+    )
+
+    const refreshToken = JwtProvider.generateToken(
+      userInfo, env.REFRESH_TOKEN_SECRET_SIGNATURE, env.REFRESH_TOKEN_LIFE
+    )
+
+    return {
+      accessToken,
+      refreshToken,
+      ...pickUser(existUser)
+    }
+
   } catch (error) {
     throw error
   }
 }
 
-const softDelete = async (userId) => {
+const refreshToken = async (clientRefreshToken) => {
   try {
-    const result = await userModel.softDelete(userId)
-    if (!result) {
-      throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
+    const refreshTokenDecoded = JwtProvider.verifyToken(clientRefreshToken, env.REFRESH_TOKEN_SECRET_SIGNATURE)
+
+    const userInfo = {
+      _id: refreshTokenDecoded._id,
+      email: refreshTokenDecoded.email
     }
-    return result
-  } catch (error) {
+
+    const accessToken = JwtProvider.generateToken(
+      userInfo, env.ACCESS_TOKEN_SECRET_SIGNATURE,
+      env.ACCESS_TOKEN_LIFE
+    )
+
+    return {
+      accessToken
+    }
+  }
+  catch (error) {
     throw error
   }
-}
-
-const login = async (email, password) => {
-  const user = await userModel.findOneByEmail(email)
-  if (!user) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Invalid email or password')
-  }
-
-  const isMatch = await bcrypt.compare(password, user.password)
-  if (!isMatch) {
-    throw new ApiError(StatusCodes.UNAUTHORIZED, 'Invalid email or password')
-  }
-
-  return user
 }
 
 
 export const userService = {
   createNew,
-  getDetails,
-  update,
-  softDelete,
-  login
+  verifyAccount,
+  login,
+  refreshToken
 }
