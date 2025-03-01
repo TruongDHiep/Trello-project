@@ -15,7 +15,7 @@ const createNew = async (req, res, next) => {
       'any.required': 'title is a required field'
     }),
     type: Joi.string().valid(BOARD_TYPES.PUBLIC, BOARD_TYPES.PRIVATE).required(),
-    ownerIds: Joi.array().items(Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE))
+    description: Joi.string().required().min(3).max(50).trim().strict()
   })
 
   try {

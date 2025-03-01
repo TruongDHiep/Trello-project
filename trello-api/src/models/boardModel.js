@@ -1,12 +1,14 @@
 /**
  */
 import Joi from 'joi'
-import { ObjectId, ReturnDocument } from 'mongodb'
+import { ObjectId } from 'mongodb'
 import { GET_DB } from '~/config/mongodb'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { BOARD_TYPES } from '~/utils/constants'
 import { columnModel } from './columnModel'
 import { cardModel } from './cardModel'
+import { pagingSkipValue } from '~/utils/algorithms'
+import { userModel } from './userModel'
 
 // Define Collection (name & schema)
 const BOARD_COLLECTION_NAME = 'boards'
@@ -21,10 +23,13 @@ const BOARD_COLLECTION_SCHEMA = Joi.object({
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
   ).default([]),
 
-  // New ownerIds property
-  ownerIds: Joi.array().required().items(
+  ownerIds: Joi.array().items(
     Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
-  ),
+  ).default([]),
+
+  memberIds: Joi.array().items(
+    Joi.string().pattern(OBJECT_ID_RULE).message(OBJECT_ID_RULE_MESSAGE)
+  ).default([]),
 
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
@@ -42,13 +47,13 @@ const validateBeforeCreate = async (data) => {
   catch (error) { throw new Error(error) }
 }
 
-const createNew = async (data) => {
+const createNew = async (userId, data) => {
   try {
 
     const validData = await validateBeforeCreate(data)
     const newBoardToAdd = {
       ...validData,
-      ownerIds: validData.ownerIds.map(id => new ObjectId(id))
+      ownerIds: [new ObjectId(userId)]
     }
     const createdBoard = await GET_DB().collection(BOARD_COLLECTION_NAME).insertOne(newBoardToAdd)
     return createdBoard
@@ -67,13 +72,26 @@ const findOneById = async (id) => {
 }
 
 // su dung query tong hop aggregation de lay toan bo card va column cua board
-const getDetails = async (id) => {
+const getDetails = async (userId, boardId) => {
   try {
+
+    const queryConditions = [
+      { _id: new ObjectId(boardId) },
+      { _destroy: false },
+      {
+        $or: [{
+          ownerIds: { $all: [new ObjectId(userId)] }
+        },
+        {
+          memberIds: { $all: [new ObjectId(userId)] }
+        }]
+      }
+    ]
+
     const result = await GET_DB().collection(BOARD_COLLECTION_NAME).aggregate([
       {
         $match: {
-          _id: new ObjectId(id),
-          _destroy: false
+          $and: queryConditions
         }
       },
       {
@@ -90,6 +108,24 @@ const getDetails = async (id) => {
           localField: '_id',
           foreignField: 'boardId',
           as: 'cards'
+        }
+      },
+      {
+        $lookup: {
+          from: userModel.USER_COLLECTION_NAME,
+          localField: 'ownerIds',
+          foreignField: '_id',
+          as: 'owners',
+          pipeline: [{ $project: { 'password': 0, 'verifyToken': 0 } }]
+        }
+      },
+      {
+        $lookup: {
+          from: userModel.USER_COLLECTION_NAME,
+          localField: 'memberIds',
+          foreignField: '_id',
+          as: 'members',
+          pipeline: [{ $project: { 'password': 0, 'verifyToken': 0 } }]
         }
       }
     ]).toArray()
@@ -145,15 +181,51 @@ const update = async (boardId, updateData) => {
   catch (error) { throw new Error(error) }
 }
 
-const findByOwnerIds = async (ownerId) => {
+const getBoards = async (userId, page, itemsPerPage) => {
   try {
-    const boards = await GET_DB().collection(BOARD_COLLECTION_NAME).find({
-      ownerIds: { $in: [new ObjectId(ownerId)] } // Tìm các board có ownerIds chứa ownerId
-    }).toArray()
-    return boards
-  } catch (error) {
-    throw new Error(error)
+    const queryConditions = [
+      // dieu kien 1: board chua bi xoa
+      { _destroy: false },
+      // dk2:
+      {
+        $or: [{
+          ownerIds: { $all: [new ObjectId(userId)] }
+        },
+        {
+          memberIds: { $all: [new ObjectId(userId)] }
+        }]
+      }
+    ]
+
+    const query = await GET_DB().collection(BOARD_COLLECTION_NAME).aggregate(
+      [
+        { $match: { $and: queryConditions } },
+        { $sort: { title: 1 } },
+        // de xu ly tong hop nhieu luong trong 1 query
+        {
+          $facet: {
+            // luong 1: query boards
+            'queryBoards': [
+              { $skip: pagingSkipValue(page, itemsPerPage) }, // bo qua so luong boards cua nhung page truoc do
+              { $limit: itemsPerPage } // gioi han toi da so luong boards tren 1 page
+            ],
+            //luong 2: query total boards
+            'queryTotalBoards': [{ $count: 'countedAllBoards' }]
+
+          }
+        }
+      ],
+      { collation: { locale: 'en' } }
+    ).toArray()
+
+    const res = query[0]
+
+    return {
+      boards: res.queryBoards || [],
+      totalBoards: res.queryTotalBoards[0]?.countedAllBoards || 0
+    }
   }
+  catch (error) { throw new Error(error) }
 }
 
 export const boardModel = {
@@ -165,6 +237,6 @@ export const boardModel = {
   pushColumnOrderIds,
   update,
   pullColumnOrderIds,
-  findByOwnerIds
+  getBoards
 }
 

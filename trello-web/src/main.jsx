@@ -19,6 +19,7 @@ import { BrowserRouter } from 'react-router-dom'
 
 import { PersistGate } from 'redux-persist/integration/react'
 import { persistStore } from 'redux-persist'
+import { GlobalStyles } from '@mui/material'
 
 const persistor = persistStore(store)
 
@@ -37,6 +38,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             confirmationButtonProps: { color: 'success', variant: 'outlined' },
             cancellationButtonProps: { color: 'error', variant: 'outlined' }
           }}>
+            <GlobalStyles styles={{ a: { textDecoration: 'none' } }} />
             <CssBaseline />
             <App />
             <ToastContainer />

@@ -11,8 +11,9 @@ import { cloneDeep } from 'lodash'
 import { columnModel } from '~/models/columnModel'
 import { cardModel } from '~/models/cardModel'
 import { userModel } from '~/models/userModel'
+import { DEFAULT_ITEMS_PER_PAGE, DEFAULT_PAGE } from '~/utils/constants'
 
-const createNew = async (reqBody) => {
+const createNew = async (userId, reqBody) => {
   // eslint-disable-next-line no-useless-catch
   try {
     const newBoard = {
@@ -20,7 +21,7 @@ const createNew = async (reqBody) => {
       slug: slugify(reqBody.title)
     }
 
-    const createdBoard = await boardModel.createNew(newBoard)
+    const createdBoard = await boardModel.createNew(userId, newBoard)
 
     const getNewBoard = await boardModel.findOneById(createdBoard.insertedId)
 
@@ -29,10 +30,10 @@ const createNew = async (reqBody) => {
   } catch (error) { throw error }
 }
 
-const getDetails = async (boardId) => {
+const getDetails = async (userId, boardId) => {
   // eslint-disable-next-line no-useless-catch
   try {
-    const board = await boardModel.getDetails(boardId)
+    const board = await boardModel.getDetails(userId, boardId)
 
     if (!board) throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found')
 
@@ -87,22 +88,20 @@ const moveCardToDifferentColumn = async (reqBody) => {
   } catch (error) { throw error }
 }
 
-const getBoardsByUser = async (username) => {
-  const user = await userModel.findOneByEmail(username); // Giả sử bạn có hàm này
-  if (!user) throw new ApiError(StatusCodes.NOT_FOUND, 'User not found')
 
-  const boards = await boardModel.find({ ownerIds: user._id }) // Tìm boards theo ownerIds
-  return boards
-}
+const getBoards = async (userId, page, itemsPerPage) => {
+  try {
+    if (!page) page = DEFAULT_PAGE
+    if (!itemsPerPage) itemsPerPage = DEFAULT_ITEMS_PER_PAGE
 
-const findOneById = async (boardId) => {
-  const board = await boardModel.findOneById(boardId)
-  return board
-}
+    const results = await boardModel.getBoards(userId, parseInt(page, 10), parseInt(itemsPerPage, 10))
 
-const findByOwnerIds = async (ownerId) => {
-  const boards = await boardModel.findByOwnerIds(ownerId)
-  return boards
+    return results
+
+  } catch (error) {
+    throw error
+  }
+
 }
 
 export const boardService = {
@@ -110,7 +109,5 @@ export const boardService = {
   getDetails,
   update,
   moveCardToDifferentColumn,
-  getBoardsByUser,
-  findOneById,
-  findByOwnerIds
+  getBoards
 }

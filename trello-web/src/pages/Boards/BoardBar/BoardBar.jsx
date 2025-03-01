@@ -5,11 +5,10 @@ import VpnLockIcon from '@mui/icons-material/VpnLock'
 import AddToDriveIcon from '@mui/icons-material/AddToDrive'
 import BoltIcon from '@mui/icons-material/Bolt'
 import FilterListIcon from '@mui/icons-material/FilterList'
-import Avatar from '@mui/material/Avatar'
-import AvatarGroup from '@mui/material/AvatarGroup'
 import Button from '@mui/material/Button'
 import PersonAddIcon from '@mui/icons-material/PersonAdd'
 import { capitalizeFirstLetter } from '~/utils/formatters'
+import BoardUserGroup from './BoardUserGroup'
 
 const MENU_STYLE = {
   color: 'white',
@@ -90,39 +89,8 @@ function BoardBar({ Board }) {
           }}
         >Invite
         </Button>
-        <AvatarGroup
-          max={4}
-          sx={{
-            gap: '10px',
-            '& .MuiAvatar-root': {
-              width: 34,
-              height: 34,
-              border: 'none',
-              color: 'white',
-              cursor: 'pointer',
-              '&:first-of-type': {
-                bgcolor: 'a4b0be'
-              }
-            },
-            fontSize: '16px'
-          }
-          }>
-          <Tooltip title="You">
-            <Avatar alt="Truong Hiep" src="https://avatars.githubusercontent.com/u/58823057?v=4" />
-          </Tooltip>
-          <Tooltip title="You">
-            <Avatar alt="Truong Hiep" src="https://avatars.githubusercontent.com/u/58823057?v=4" />
-          </Tooltip>
-          <Tooltip title="You">
-            <Avatar alt="Truong Hiep" src="https://avatars.githubusercontent.com/u/58823057?v=4" />
-          </Tooltip>
-          <Tooltip title="You">
-            <Avatar alt="Truong Hiep" src="https://avatars.githubusercontent.com/u/58823057?v=4" />
-          </Tooltip>
-          <Tooltip title="You">
-            <Avatar alt="Truong Hiep" src="https://avatars.githubusercontent.com/u/58823057?v=4" />
-          </Tooltip>
-        </AvatarGroup>
+        <BoardUserGroup boardUsers={Board?.FE_allUsers}/>
+
       </ Box>
 
     </Box >
