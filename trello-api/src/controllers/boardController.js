@@ -10,8 +10,11 @@ const createNew = async (req, res, next) => {
   try {
     // console.log(req.body)
 
+    const userId = req.jwtDecoded._id
+
+
     // Call service
-    const createBoard = await boardService.createNew(req.body)
+    const createBoard = await boardService.createNew(userId, req.body)
 
     // Response
     res.status(StatusCodes.CREATED).json(createBoard)
@@ -20,9 +23,10 @@ const createNew = async (req, res, next) => {
 
 const getDetails = async (req, res, next) => {
   try {
+    const userId = req.jwtDecoded._id
     const boardId = req.params.id
 
-    const board = await boardService.getDetails(boardId)
+    const board = await boardService.getDetails(userId, boardId)
 
     res.status(StatusCodes.OK).json(board)
   } catch (error) { next(error) }
@@ -47,22 +51,17 @@ const moveCardToDifferentColumn = async (req, res, next) => {
   } catch (error) { next(error) }
 }
 
-const getBoardsByUser = async (req, res) => {
-  const { username } = req.params
-  const boards = await boardService.getBoardsByUser(username)
-  res.status(StatusCodes.OK).json(boards)
-}
 
-const findOneById = async (req, res) => {
-  const { id } = req.params
-  const board = await boardService.findOneById(id)
-  res.status(StatusCodes.OK).json(board)
-}
+const getBoards = async (req, res, next) => {
+  try {
+    const userId = req.jwtDecoded._id
 
-const findByOwnerIds = async (req, res) => {
-  const { id } = req.params
-  const board = await boardService.findByOwnerIds(id)
-  res.status(StatusCodes.OK).json(board)
+    const { page, itemsPerPage } = req.query
+    const results = await boardService.getBoards(userId, page, itemsPerPage)
+
+    res.status(StatusCodes.OK).json(results)
+
+  } catch (error) { next(error) }
 }
 
 export const boardController = {
@@ -70,7 +69,5 @@ export const boardController = {
   getDetails,
   update,
   moveCardToDifferentColumn,
-  getBoardsByUser,
-  findOneById,
-  findByOwnerIds
+  getBoards
 }

@@ -10,9 +10,12 @@ import CommentIcon from '@mui/icons-material/Comment'
 import AttachmentIcon from '@mui/icons-material/Attachment'
 import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { useDispatch } from 'react-redux'
+import { updateCurrentActiveCard } from '~/redux/activeCard/activeCardSlice'
 
 
 function CardTrello({ card }) {
+  const dispatch = useDispatch()
 
   const {
     attributes, listeners, setNodeRef, transform, transition, isDragging
@@ -30,8 +33,13 @@ function CardTrello({ card }) {
     return card?.memberIds?.length || card?.comments?.length || card?.attachments
   }
 
+  const setActiveCard = () => {
+    dispatch(updateCurrentActiveCard(card))
+  }
+
   return (
     <Card
+      onClick={setActiveCard}
       ref={setNodeRef}
       style={dndKitCardStyles}
       {...attributes}

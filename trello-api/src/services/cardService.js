@@ -1,6 +1,8 @@
 
 import { cardModel } from '~/models/cardModel'
 import { columnModel } from '~/models/columnModel'
+import { CloudinaryProvider } from '~/providers/CloudinaryProvider'
+
 
 const createNew = async (reqBody) => {
   // eslint-disable-next-line no-useless-catch
@@ -23,6 +25,32 @@ const createNew = async (reqBody) => {
   } catch (error) { throw error }
 }
 
+const update = async (cardId, reqBody, cardCoverFile) => {
+  try {
+    const updateData = {
+      ...reqBody,
+      updatedAt: Date.now()
+    }
+
+    let updatedCard = {}
+
+    if (cardCoverFile) {
+      // upload len cloudinary
+      const uploadResult = await CloudinaryProvider.streamUpload(cardCoverFile.buffer, 'card-covers')
+
+      // luu lai avatarUrl
+      updatedCard = await cardModel.update(cardId, { cover: uploadResult.secure_url })
+
+    } else {
+
+      const updatedCard = await cardModel.update(cardId, updateData)
+    }
+
+    return updatedCard
+  } catch (error) { throw error }
+}
+
 export const cardService = {
-  createNew
+  createNew,
+  update
 }
