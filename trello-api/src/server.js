@@ -1,6 +1,3 @@
-/* eslint-disable no-console */
-
-
 import express from 'express'
 import cors from 'cors'
 import exitHook from 'async-exit-hook'
@@ -10,6 +7,10 @@ import { APIs_V1 } from '~/routes/v1'
 import { errorHandlingMiddleware } from '~/middlewares/errorHandlingMiddleware'
 import { corsOptions } from '~/config/cors.js'
 import cookieParser from 'cookie-parser'
+
+import socketIo from 'socket.io'
+import http from 'http'
+import { inviteUserToBoardSocket } from '~/sockets/inviteUserToBoardSocket'
 
 const START_SERVER = () => {
 
@@ -34,9 +35,24 @@ const START_SERVER = () => {
   // middleware xu lu loi tap trung
   app.use(errorHandlingMiddleware)
 
-  app.listen(env.APP_PORT, env.APP_HOST, () => {
-    console.log(`Hello ${env.AUTHOR}, I am running at http://${env.APP_HOST}:${env.APP_PORT}/`)
+  // tao 1 server boc thang app cua express de lam real time
+  const server = http.createServer(app)
+  // khoi tao bien io voi server va cors
+  const io = socketIo(server, { cors: corsOptions })
+  io.on('connection', (socket) => {
+    inviteUserToBoardSocket(socket)
   })
+
+  if (env.BUILD_MODE === 'production') {
+    server.listen(process.env.PORT, () => {
+      console.log(`Production: Hello ${env.AUTHOR}, Backend server is running at Port: ${process.env.PORT}`)
+    })
+  }
+  else {
+    server.listen(env.APP_PORT, env.APP_HOST, () => {
+      console.log(`Hello ${env.AUTHOR}, I am running at http://${env.APP_HOST}:${env.APP_PORT}/`)
+    })
+  }
 
   exitHook(() => {
     console.log('Closing MongoDB connection...')

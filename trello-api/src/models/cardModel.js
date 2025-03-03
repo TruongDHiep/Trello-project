@@ -1,13 +1,9 @@
-/**
- * Updated by trungquandev.com's author on Oct 8 2023
- * YouTube: https://youtube.com/@trungquandev
- * "A bit of fragrance clings to the hand that gives flowers!"
- */
 
 import Joi from 'joi'
 import { EMAIL_RULE, EMAIL_RULE_MESSAGE, OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { ObjectId } from 'mongodb'
+import { CARD_MEMBER_ACTION } from '~/utils/constants'
 
 // Define Collection (name & schema)
 const CARD_COLLECTION_NAME = 'cards'
@@ -80,7 +76,7 @@ const update = async (cardId, updateData) => {
       }
     })
 
-    if ( updateData.columnId ) updateData.columnId = new ObjectId(updateData.columnId)
+    if (updateData.columnId) updateData.columnId = new ObjectId(updateData.columnId)
 
 
     const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
@@ -104,11 +100,48 @@ const deleteManyByColumnId = async (id) => {
   catch (error) { throw new Error(error) }
 }
 
+const unshiftNewComment = async (cardId, commentData) => {
+  try {
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      { $push: { comments: { $each: [commentData], $position: 0 } } },
+      { returnDocument: 'after' }
+    )
+    return result
+  }
+  catch (error) { throw new Error(error) }
+}
+
+const updateMembers = async (cardId, incomingMemberInfo) => {
+  try {
+
+    let updateCondition = {}
+    if (incomingMemberInfo.action === CARD_MEMBER_ACTION.ADD) {
+      updateCondition = { $push: { memberIds: new ObjectId(incomingMemberInfo.userId) } }
+    }
+    if (incomingMemberInfo.action === CARD_MEMBER_ACTION.REMOVE) {
+      updateCondition = { $pull: { memberIds: new ObjectId(incomingMemberInfo.userId) } }
+    }
+
+    const result = await GET_DB().collection(CARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(cardId) },
+      updateCondition,
+      { returnDocument: 'after' }
+    )
+
+    return result
+
+  }
+  catch (error) { throw new Error(error) }
+}
+
 export const cardModel = {
   CARD_COLLECTION_NAME,
   CARD_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   update,
-  deleteManyByColumnId
+  deleteManyByColumnId,
+  unshiftNewComment,
+  updateMembers
 }

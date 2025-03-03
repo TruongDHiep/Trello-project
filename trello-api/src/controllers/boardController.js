@@ -35,7 +35,6 @@ const getDetails = async (req, res, next) => {
 const update = async (req, res, next) => {
   try {
     const boardId = req.params.id
-
     const updatedBoard = await boardService.update(boardId, req.body)
 
     res.status(StatusCodes.OK).json(updatedBoard)
@@ -56,7 +55,8 @@ const getBoards = async (req, res, next) => {
   try {
     const userId = req.jwtDecoded._id
 
-    const { page, itemsPerPage } = req.query
+    const { page, itemsPerPage, q } = req.query
+    const queryFilters = q
     const results = await boardService.getBoards(userId, page, itemsPerPage)
 
     res.status(StatusCodes.OK).json(results)
