@@ -25,7 +25,7 @@ const createNew = async (reqBody) => {
   } catch (error) { throw error }
 }
 
-const update = async (cardId, reqBody, cardCoverFile) => {
+const update = async (cardId, reqBody, cardCoverFile, userInfo) => {
   try {
     const updateData = {
       ...reqBody,
@@ -41,9 +41,24 @@ const update = async (cardId, reqBody, cardCoverFile) => {
       // luu lai avatarUrl
       updatedCard = await cardModel.update(cardId, { cover: uploadResult.secure_url })
 
-    } else {
-
-      const updatedCard = await cardModel.update(cardId, updateData)
+    }
+    else if (updateData.commentToAdd) {
+      // them comment vao db
+      console.log('userInfo', userInfo)
+      const commentData = {
+        ...updateData.commentToAdd,
+        commentedAt: Date.now(),
+        userId: userInfo._id,
+        userEmail: userInfo.email
+      }
+      updatedCard = await cardModel.unshiftNewComment(cardId, commentData)
+    }
+    else if (updateData.incomingMemberInfo) {
+      // them hoac xoa member
+      updatedCard = await cardModel.updateMembers(cardId, updateData.incomingMemberInfo)
+    }
+    else {
+      updatedCard = await cardModel.update(cardId, updateData)
     }
 
     return updatedCard

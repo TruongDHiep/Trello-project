@@ -21,16 +21,18 @@ import { PersistGate } from 'redux-persist/integration/react'
 import { persistStore } from 'redux-persist'
 import { GlobalStyles } from '@mui/material'
 
+
 const persistor = persistStore(store)
 
 //ky thuat inject store vao axios
 import { injectStore } from '~/utils/authorizeAxios'
 injectStore(store)
 
+
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <BrowserRouter basename='/'>
-    <Provider store={store}>
-      <PersistGate persistor={persistor}>
+  <Provider store={store}>
+    <PersistGate persistor={persistor}>
+      <BrowserRouter basename='/'>
         <CssVarsProvider theme={theme}>
           <ConfirmProvider defaultOptions={{
             allowClose: false,
@@ -44,7 +46,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <ToastContainer />
           </ConfirmProvider>
         </CssVarsProvider>
-      </PersistGate>
-    </Provider>
-  </BrowserRouter>
+      </BrowserRouter>
+    </PersistGate>
+  </Provider>
 )

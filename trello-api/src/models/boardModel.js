@@ -74,7 +74,6 @@ const findOneById = async (id) => {
 // su dung query tong hop aggregation de lay toan bo card va column cua board
 const getDetails = async (userId, boardId) => {
   try {
-
     const queryConditions = [
       { _id: new ObjectId(boardId) },
       { _destroy: false },
@@ -181,7 +180,7 @@ const update = async (boardId, updateData) => {
   catch (error) { throw new Error(error) }
 }
 
-const getBoards = async (userId, page, itemsPerPage) => {
+const getBoards = async (userId, page, itemsPerPage, queryFilters) => {
   try {
     const queryConditions = [
       // dieu kien 1: board chua bi xoa
@@ -196,6 +195,17 @@ const getBoards = async (userId, page, itemsPerPage) => {
         }]
       }
     ]
+
+    if (queryFilters) {
+      Object.keys(queryFilters).forEach(key => {
+
+        // queryConditions.push({ [key]: { $regex: queryFilters[key] } })
+
+        queryConditions.push({ [key]: { $regex: new RegExp(queryFilters[key], 'i') } })
+
+
+      })
+    }
 
     const query = await GET_DB().collection(BOARD_COLLECTION_NAME).aggregate(
       [
@@ -228,6 +238,20 @@ const getBoards = async (userId, page, itemsPerPage) => {
   catch (error) { throw new Error(error) }
 }
 
+
+const pushMemberIds = async (boardId, userId) => {
+  try {
+    const result = await GET_DB().collection(BOARD_COLLECTION_NAME).findOneAndUpdate(
+      { _id: new ObjectId(boardId) },
+      { $push: { memberIds: new ObjectId(userId) } },
+      { returnDocument: 'after' }
+    )
+
+    return result
+  }
+  catch (error) { throw new Error(error) }
+}
+
 export const boardModel = {
   BOARD_COLLECTION_NAME,
   BOARD_COLLECTION_SCHEMA,
@@ -237,6 +261,7 @@ export const boardModel = {
   pushColumnOrderIds,
   update,
   pullColumnOrderIds,
-  getBoards
+  getBoards,
+  pushMemberIds
 }
 

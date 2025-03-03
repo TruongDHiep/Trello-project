@@ -7,8 +7,6 @@ import Recent from './Menus/Recent'
 import Starred from './Menus/Starred'
 import Templates from './Menus/Templates'
 import { TextField } from '@mui/material'
-import { Badge } from '@mui/material'
-import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone'
 import { Tooltip } from '@mui/material'
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline'
 import Profiles from './Menus/Profiles'
@@ -20,6 +18,8 @@ import { Link } from 'react-router-dom'
 import SvgIcon from '@mui/material/SvgIcon'
 import TrelloIcon from '~/assets/trello.svg?react'
 // import CreateForm from './Menus/CreateForm'
+import Notifications from './Notifications/Notifications'
+import AutoCompleteSearchBoard from './SearchBoards/AutoCompleteSearchBoard'
 
 function AppBar() {
   const [searchValue, setSearchValue] = useState('')
@@ -60,50 +60,9 @@ function AppBar() {
 
 
       <Box sx={{ display: 'flex', alignItems: 'right', gap: 2 }}>
-        <TextField
-          id="outlined-search"
-          label="Search"
-          type="text"
-          size="small"
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon sx={{ color: 'white' }} />
-              </InputAdornment>
-            ),
-            endAdornment: (
-              <InputAdornment position="end">
-                <CloseIcon fontSize="small"
-                  sx={{
-                    color: searchValue ? 'white' : 'transparent',
-                    cursor: 'pointer'
-                  }}
-                  onClick={() => setSearchValue('')}
-                />
-              </InputAdornment>
-            )
-          }}
-          sx={{
-            minWidth: '120px',
-            maxWidth: '170px',
-            '& label': { color: 'white' },
-            '& input': { color: 'white' },
-            '& label.Mui-focused': { color: 'white' },
-            '& .MuiOutlinedInput-root': {
-              '& fieldset': { borderColor: 'white' },
-              '&:hover fieldset': { borderColor: 'white' },
-              '&.Mui-focused fieldset': { borderColor: 'white' }
-            }
-          }}
-        />
+        <AutoCompleteSearchBoard />
         <ModeSelect />
-        <Tooltip title="Notification">
-          <Badge color="warning" variant="dot" sx={{ cursor: 'pointer' }}>
-            <NotificationsNoneIcon sx={{ color: 'white' }} />
-          </Badge>
-        </Tooltip>
+        <Notifications />
 
         <Tooltip title="Help">
           <HelpOutlineIcon sx={{ cursor: 'pointer', color: 'white' }} />
