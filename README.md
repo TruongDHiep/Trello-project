@@ -4,6 +4,9 @@ A Trello-inspired task management application with real-time collaboration featu
 
 ## 🚀 Live Demo
 [🔗 Click here to view the live demo](https://trello-web-lac.vercel.app)  
+Test Account: 
+email: test01@gmail.com
+password: a12345678
 
 ## 📸 Screenshots
 ### Login:
